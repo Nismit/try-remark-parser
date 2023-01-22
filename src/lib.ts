@@ -2,6 +2,7 @@ import React from 'react';
 import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
+import remarkDirective from "remark-directive";
 import rehypeReact from "rehype-react";
 import { visit } from "unist-util-visit";
 
@@ -33,10 +34,12 @@ export const markdownToRehypeReact = async (content: string) => {
 export const markdownToReactComponent = async (content: string) => {
   const processor = unified()
     .use(remarkParse)
+    .use(remarkDirective)
     .use(allHeadingLevelToTwo)
+    .use(detectEmbed)
     .use(remarkRehype)
     .use(afterRehypePlugin)
-    .use(debugTree)
+    // .use(debugTree)
     .use(rehypeReact, { createElement: React.createElement });
   return (await processor.process(content));
 }
@@ -53,6 +56,26 @@ export const allHeadingLevelToTwo: any = () => {
 
   return transformer;
 }
+
+export const detectEmbed: any = () => {
+  const transformer = (tree: any) => {
+    visit(tree, 'paragraph', (node: any) => {
+      console.log('detectEmbed - node', node);
+
+      // Invalid children structure
+      if (node.children.length !== 1) {
+        return;
+      }
+
+      // Invalid children type
+      if (node.children[0].type !== 'link') {
+        return;
+      }
+    })
+  };
+
+  return transformer;
+};
 
 export const afterRehypePlugin: any = () => {
   const transformer = (tree: any) => {
